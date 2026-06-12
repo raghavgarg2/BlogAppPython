@@ -1,16 +1,19 @@
 from django.shortcuts import render
-from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
 from .models import Post,Comment
 from .serializers import PostSerializer,CommentSerializer,CommentUpdateSerializer
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
 
-class PostAPI(APIView):
+class PostAPI(GenericAPIView):
+
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
 
     def get(self,request):
-        posts = Post.objects.all() # this will return me the query set
-        serializer = PostSerializer(
+        posts = self.get_queryset() # this will return me the query set
+        serializer = self.get_serializer(
             posts,
             many = True
         ) # now serializer contains list of dictionaries
@@ -25,7 +28,7 @@ class PostAPI(APIView):
     
     def post(self,request):
 
-        serializer = PostSerializer(
+        serializer = self.get_serializer(
             data = request.data
         ) # this will only wrap my python dictionary object into serializable because request.data is already python dictionary
 
@@ -45,17 +48,22 @@ class PostAPI(APIView):
 
 
 
-class PostIdAPI(APIView):
+class PostIdAPI(GenericAPIView):
 
-    def get(self,request,id):
-        post = get_object_or_404(Post,id = id)
-        serializer = PostSerializer(post)
+    queryset = Post.objects.all()
+    serializer_class = PostSerializer
+
+    def get(self,request,pk):
+        post = self.get_object()
+        serializer = self.get_serializer(
+            post
+        ) 
         return Response(serializer.data)
 
 
-    def put(self,request,id):
-        post = get_object_or_404(Post,id = id)
-        serializer = PostSerializer(
+    def put(self,request,pk):
+        post = self.get_object()
+        serializer = self.get_serializer(
             post,
             data = request.data
         )
@@ -63,6 +71,7 @@ class PostIdAPI(APIView):
         serializer.is_valid(
             raise_exception=True
         )
+        serializer.save()
 
         return Response(
             {
@@ -75,9 +84,9 @@ class PostIdAPI(APIView):
         
         
 
-    def patch(self,request,id):
-        post = get_object_or_404(Post,id = id)
-        serializer = PostSerializer(
+    def patch(self,request,pk):
+        post = self.get_object()
+        serializer = self.get_serializer(
             post,
             data = request.data,
             partial = True
@@ -86,18 +95,19 @@ class PostIdAPI(APIView):
         serializer.is_valid(
             raise_exception=True
         )
+        serializer.save()
 
         return Response({
             "msg" : "post updated successfully"
         })
        
     
-    def delete(self,request,id):
-        post = get_object_or_404(Post,id = id)
+    def delete(self,request,pk):
+        post = self.get_object()
         post.delete()
         return Response(
             {
-                 "msg" : "task deleted successfully"
+                 "msg" : "post deleted successfully"
 
             }
         )
@@ -105,29 +115,12 @@ class PostIdAPI(APIView):
 
   
 
-class CommentAPI(APIView):
-    # def get(self,request):
-    #     comments = Comment.objects.all()
-    #     serializer = CommentSerializer(
-    #         comments,
-    #         many = True
-    #     )
-    #     return Response(
-    #         serializer.data,
-    #     )
+class CommentAPI(GenericAPIView):
 
-    # def get(self,request):
-    #     postId = request.query_params.get("post")
-    #     post = get_object_or_404(Post,id = postId)
-    #     comments = Comment.objects.filter(post = post)
-    #     serializer = CommentSerializer(
-    #         comments,
-    #         many = True
-    #     )
-    #     return Response(
-    #         serializer.data,
-    #     )
-  
+    queryset = Comment.objects.all()
+
+    serializer_class = CommentSerializer
+
 
     def get(self, request):
 
@@ -141,12 +134,12 @@ class CommentAPI(APIView):
 
      else:
 
-        comments = Comment.objects.all()
+        comments = self.get_queryset()
 
-     serializer = CommentSerializer(
-        comments,
-        many=True
-    )
+     serializer = self.get_serializer(
+            comments,
+            many=True
+     ) 
 
      return Response(
         serializer.data
@@ -155,7 +148,7 @@ class CommentAPI(APIView):
         
      
     def post(self,request):
-        serializer = CommentSerializer(
+        serializer = self.get_serializer( 
             data = request.data
             )
         serializer.is_valid(
@@ -167,28 +160,40 @@ class CommentAPI(APIView):
             "msg" : "comment posted successfully"
         })
 
+    
+
+
+class CommentIdAPI(GenericAPIView):
+
+    queryset = Comment.objects.all()
+
+    serializer_class = CommentSerializer
+
+    def get_serializer_class(self):
+        if self.request.method in ["PUT","PATCH"]:
+            return CommentUpdateSerializer
         
+        return CommentSerializer
 
+    def get(self,request,pk):
+        comment = self.get_object()
 
-
-class CommentIdAPI(APIView):
-
-    def get(self,request,id):
-        comment = get_object_or_404(Comment,id = id)
-        serializer = CommentSerializer(comment)
+        serializer = self.get_serializer(
+            comment
+        ) 
         return Response(
             serializer.data
         )
         
 
-    def put(self,request,id):
-        comment = get_object_or_404(Comment,id = id)
-        print(comment.id)
-        serializer = CommentUpdateSerializer(
+    def put(self,request,pk):
+       
+        comment = self.get_object()
+       
+        serializer = self.get_serializer(
             comment,
             data = request.data
-        )
-    
+        )  
         serializer.is_valid(
             raise_exception=True
         )
@@ -203,13 +208,14 @@ class CommentIdAPI(APIView):
 
        
 
-    def patch(self,request,id):
-        comment = get_object_or_404(Comment,id = id)
-        serializer = CommentUpdateSerializer(
+    def patch(self,request,pk):
+        comment = self.get_object()
+
+        serializer = self.get_serializer(
             comment,
             data = request.data,
             partial = True
-        )
+        ) 
         serializer.is_valid(
             raise_exception=True
         )
@@ -223,8 +229,8 @@ class CommentIdAPI(APIView):
 
         
     
-    def delete(self,request,id):
-        comment = get_object_or_404(Comment,id = id)
+    def delete(self,request,pk):
+        comment = self.get_object()
         comment.delete()
         return  Response({
             "msg" : "comment deleted successfully"

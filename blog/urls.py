@@ -7,7 +7,7 @@ urlpatterns = [
         PostAPI.as_view()
     ),
     path(
-        "posts/<int:id>/",
+        "posts/<int:pk>/",
         PostIdAPI.as_view()
     ),
     path(
@@ -15,7 +15,7 @@ urlpatterns = [
         CommentAPI.as_view()
     ),
     path(
-        "comments/<int:id>/",
+        "comments/<int:pk>/",
         CommentIdAPI.as_view()
     ),
 
