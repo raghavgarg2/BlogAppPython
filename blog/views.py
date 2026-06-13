@@ -3,167 +3,107 @@ from rest_framework.generics import GenericAPIView
 from .models import Post,Comment
 from .serializers import PostSerializer,CommentSerializer,CommentUpdateSerializer
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
+from rest_framework.mixins import (ListModelMixin,CreateModelMixin,RetrieveModelMixin,UpdateModelMixin,DestroyModelMixin)
 
 
-class PostAPI(GenericAPIView):
+class PostAPI(ListModelMixin,CreateModelMixin,GenericAPIView):
 
     queryset = Post.objects.all()
     serializer_class = PostSerializer
 
     def get(self,request):
-        posts = self.get_queryset() # this will return me the query set
-        serializer = self.get_serializer(
-            posts,
-            many = True
-        ) # now serializer contains list of dictionaries
-
-        return  Response(
-            serializer.data
-        )
-        # this response converts python list of dictionaries into JSON String and revert back to frontend
+        return self.list(request)
 
 
-    
-    
     def post(self,request):
-
-        serializer = self.get_serializer(
-            data = request.data
-        ) # this will only wrap my python dictionary object into serializable because request.data is already python dictionary
-
-        serializer.is_valid(
-            raise_exception=True
-        )
-
-        serializer.save() # this will call .create under the hood
-
-        return Response(
-            {
-                "msg" : "post created successfully"
-            }
-        )
+        return self.create(request)
 
         
 
 
 
-class PostIdAPI(GenericAPIView):
+class PostIdAPI(RetrieveModelMixin,UpdateModelMixin,DestroyModelMixin,GenericAPIView):
 
     queryset = Post.objects.all()
     serializer_class = PostSerializer
 
     def get(self,request,pk):
-        post = self.get_object()
-        serializer = self.get_serializer(
-            post
-        ) 
-        return Response(serializer.data)
+        return self.retrieve(request)
 
 
     def put(self,request,pk):
-        post = self.get_object()
-        serializer = self.get_serializer(
-            post,
-            data = request.data
-        )
-
-        serializer.is_valid(
-            raise_exception=True
-        )
-        serializer.save()
-
-        return Response(
-            {
-                "msg" : "post updated successfully",
-               
-            } 
-        )
-
-
+        return self.update(request)
         
         
 
     def patch(self,request,pk):
-        post = self.get_object()
-        serializer = self.get_serializer(
-            post,
-            data = request.data,
-            partial = True
-        )
-
-        serializer.is_valid(
-            raise_exception=True
-        )
-        serializer.save()
-
-        return Response({
-            "msg" : "post updated successfully"
-        })
+       return self.partial_update(request)
        
     
     def delete(self,request,pk):
-        post = self.get_object()
-        post.delete()
-        return Response(
-            {
-                 "msg" : "post deleted successfully"
-
-            }
-        )
+        return self.destroy(request)
         
 
   
 
-class CommentAPI(GenericAPIView):
+# class CommentAPI(CreateModelMixin,ListModelMixin,GenericAPIView):
+
+#     queryset = Comment.objects.all()
+#     serializer_class = CommentSerializer
+
+#     def get(self, request):
+
+#      post_id = request.query_params.get("post")
+
+#      if post_id:
+#         comments = Comment.objects.filter(
+#             post=post_id
+#         )
+#      else:
+#         comments = self.get_queryset()
+#         serializer = self.get_serializer(
+#             comments,
+#             many=True
+#      ) 
+
+#      return Response(
+#         serializer.data
+#     )
+        
+        
+#     def post(self,request):
+#         self.create(request)
+        
+class CommentAPI(
+    CreateModelMixin,
+    ListModelMixin,
+    GenericAPIView
+):
 
     queryset = Comment.objects.all()
 
     serializer_class = CommentSerializer
 
+    def get_queryset(self):
+
+        post_id = self.request.query_params.get("post")
+
+        if post_id:
+
+            return Comment.objects.filter(
+                post=post_id
+            )
+
+        return self.queryset
 
     def get(self, request):
+        return self.list(request)
 
-     post_id = request.query_params.get("post")
-
-     if post_id:
-
-        comments = Comment.objects.filter(
-            post=post_id
-        )
-
-     else:
-
-        comments = self.get_queryset()
-
-     serializer = self.get_serializer(
-            comments,
-            many=True
-     ) 
-
-     return Response(
-        serializer.data
-    )
-        
-        
-     
-    def post(self,request):
-        serializer = self.get_serializer( 
-            data = request.data
-            )
-        serializer.is_valid(
-            raise_exception=True
-        )
-        serializer.save()
-        
-        return Response({
-            "msg" : "comment posted successfully"
-        })
-
-    
+    def post(self, request):
+        return self.create(request)
 
 
-class CommentIdAPI(GenericAPIView):
+class CommentIdAPI(UpdateModelMixin,RetrieveModelMixin,DestroyModelMixin,GenericAPIView):
 
     queryset = Comment.objects.all()
 
@@ -176,64 +116,19 @@ class CommentIdAPI(GenericAPIView):
         return CommentSerializer
 
     def get(self,request,pk):
-        comment = self.get_object()
-
-        serializer = self.get_serializer(
-            comment
-        ) 
-        return Response(
-            serializer.data
-        )
+        return self.retrieve(request)
         
 
     def put(self,request,pk):
-       
-        comment = self.get_object()
-       
-        serializer = self.get_serializer(
-            comment,
-            data = request.data
-        )  
-        serializer.is_valid(
-            raise_exception=True
-        )
-        serializer.save()
-        print(serializer.data["id"])
-        return Response(
-            {
-                "msg" : "comment updated successfully"
-
-            }
-        )
+        return self.update(request)
 
        
 
     def patch(self,request,pk):
-        comment = self.get_object()
-
-        serializer = self.get_serializer(
-            comment,
-            data = request.data,
-            partial = True
-        ) 
-        serializer.is_valid(
-            raise_exception=True
-        )
-        serializer.save()
-        return Response(
-            {
-                "msg" : "comment updated successfully"
-
-            }
-        )
+       return self.partial_update(request)
 
         
     
     def delete(self,request,pk):
-        comment = self.get_object()
-        comment.delete()
-        return  Response({
-            "msg" : "comment deleted successfully"
-        })
-       
+        return self.destroy(request)
 
