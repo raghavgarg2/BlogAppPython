@@ -5,6 +5,7 @@ from .serializers import PostSerializer,CommentSerializer,CommentUpdateSerialize
 from rest_framework.response import Response
 from rest_framework.mixins import (ListModelMixin,CreateModelMixin,RetrieveModelMixin,UpdateModelMixin,DestroyModelMixin)
 from rest_framework.generics import ListCreateAPIView,RetrieveUpdateDestroyAPIView
+from rest_framework.viewsets import ModelViewSet
 
 
 class PostAPI(ListCreateAPIView):
@@ -86,3 +87,39 @@ class CommentIdAPI(RetrieveUpdateDestroyAPIView):
 
    
  
+
+class PostViewSet(ModelViewSet):
+
+    queryset = Post.objects.all()
+
+    serializer_class = PostSerializer
+
+
+
+
+class CommentViewSet(ModelViewSet):
+
+    queryset = Comment.objects.all()
+
+    serializer_class = CommentSerializer
+
+    def get_queryset(self):
+
+        post_id = self.request.query_params.get("post")
+
+        if post_id:
+            return Comment.objects.filter(
+                post=post_id
+            )
+
+        return super().get_queryset()
+
+    def get_serializer_class(self):
+
+        if self.action in [
+            "update",
+            "partial_update"
+        ]:
+            return CommentUpdateSerializer
+
+        return CommentSerializer
